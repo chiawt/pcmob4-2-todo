@@ -9,21 +9,24 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import firebase from "../database/firebaseDB";
 
+const db = firebase.firestore().collection("todos");
+
 export default function NotesScreen({ navigation, route }) {
   const [notes, setNotes] = useState([]);
 
   useEffect(() => {
-    const unsubscribe = firebase
-      .firestore()
-      .collection("todos")
-      .onSnapshot((collection) => {
-        const updatedNotes = collection.docs.map((doc) => {
-          const data = doc.data();
-          data.id = doc.id;
-          return data;
-        });
-        setNotes(updatedNotes);
+    const unsubscribe = db.onSnapshot((collection) => {
+      const updatedNotes = collection.docs.map((doc) => {
+        const noteObject = {
+          ...doc.data(),
+          id: doc.id,
+        };
+        console.log(noteObject);
+        return noteObject;
       });
+
+      setNotes(updatedNotes);
+    });
 
     return () => unsubscribe();
   }, []);
@@ -53,10 +56,8 @@ export default function NotesScreen({ navigation, route }) {
       const newNote = {
         title: route.params.text,
         done: false,
-        id: notes.length.toString(),
       };
       firebase.firestore().collection("todos").add(newNote);
-      setNotes([...notes, newNote]);
     }
   }, [route.params?.text]);
 
@@ -68,7 +69,7 @@ export default function NotesScreen({ navigation, route }) {
   function deleteNote(id) {
     console.log("Deleting " + id);
     // To delete that item, we filter out the item we don't want
-    setNotes(notes.filter((item) => item.id !== id));
+    db.doc(id).delete();
   }
 
   // The function to render each row in our FlatList
